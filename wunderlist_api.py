@@ -64,7 +64,7 @@ def complete_task(sess, task_id, revision):
     return "タスクを完了しました"
 
 def get_task_list_payload(sess, project_id=''):
-    res = get_task_list(sess, project_id='')
+    res = get_task_list(sess, project_id=project_id)
     ret = []
 
     for i in res:
