@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from requests_oauthlib import OAuth2Session
-import json
+import json, sys
 import requests
+sys.path.append('../')
 import env
 
 CLIENT_ID = env.WUNDERLIST_CLIENT_ID
 TOKEN = env.WUNDERLIST_TOKEN
 
-SLACK_TASK_ID = ''
 
 URL = "https://a.wunderlist.com/api/v1/"
 params = {}
@@ -29,7 +29,7 @@ def get_project_list(sess):
     return res
 
 # タスクのリストを取得
-def get_task_list(sess, project_id=''):
+def get_task_list(sess, project_id=0):
     end_point = URL + 'tasks'
     params = { 'list_id': project_id }
     req = sess.get(end_point, params=params)
@@ -43,11 +43,11 @@ def get_task_revision(sess, task_id):
     return json.loads(req.text)['revision']
 
 # タスクを追加
-def add_task(sess, task='', due_date=''):
+def add_task(sess, task='', due_date='', project_id=0):
     end_point = URL + 'tasks'
     params = {
         'title': task,
-        'list_id': SLACK_TASK_ID,
+        'list_id': project_id,
         'due_date': due_date
     }
     req = sess.post(end_point, json=params)
@@ -63,7 +63,7 @@ def complete_task(sess, task_id, revision):
     req = sess.patch(end_point, json=params)
     return "タスクを完了しました"
 
-def get_task_list_payload(sess, project_id=''):
+def get_task_list_payload(sess, project_id=0):
     res = get_task_list(sess, project_id=project_id)
     ret = []
 
@@ -90,7 +90,7 @@ def get_task_list_payload(sess, project_id=''):
 
 # タスクのリストをslackに投稿する
 # タスクのリストをslackに送りたいときはこいつを使う
-def post_task_list(sess, channel='', project_id=''):
+def post_task_list(sess, channel='', project_id=0):
     lis = get_task_list_payload(sess, project_id=project_id)
     payload = {
         'token': env.APP_TOKEN,
@@ -101,7 +101,17 @@ def post_task_list(sess, channel='', project_id=''):
     url = 'https://slack.com/api/chat.postMessage'
     requests.post(url, data=payload)
 
-sess = create_session()
-res = get_project_list(sess)
-for i in res:
-    print(i)
+
+
+'''
+###############################################
+こっからはAPIとやり取りしない処理
+###############################################
+'''
+
+def get_project_id_by_name(sess, name=''):
+    lis = get_project_list(sess)
+    for i in lis:
+        if i['title'] == name:
+            return i['id']
+
