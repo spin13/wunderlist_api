@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from requests_oauthlib import OAuth2Session
 import json, sys
+sys.path.append('./requests_oauthlib')
+from requests_oauthlib import OAuth2Session
 import requests
 sys.path.append('../')
 import env
