@@ -6,6 +6,7 @@ from requests_oauthlib import OAuth2Session
 import requests
 sys.path.append('../')
 import env
+import datetime
 
 CLIENT_ID = env.WUNDERLIST_CLIENT_ID
 TOKEN = env.WUNDERLIST_TOKEN
@@ -102,7 +103,39 @@ def post_task_list(sess, channel='', project_id=0):
     url = 'https://slack.com/api/chat.postMessage'
     requests.post(url, data=payload)
 
+# 指定プロジェクト名のタスクリストを返す
+# return tasks by project name
+def tasks_by_project_name(sess, name=""):
+    project_id = get_project_id_by_name(sess, name=name)
+    return get_task_list(sess, project_id)
 
+# 指定プロジェクト名のタスクのうちN日以内に期限になるタスク
+def will_expire_tasks_by_project_name(sess, N, name=""):
+    tasks = tasks_by_project_name(sess, name=name)
+    today = datetime.date.today()
+    threshold_date = today + datetime.timedelta(N)
+
+    ret = []
+    for task in tasks:
+        # 期限がついてなければ飛ばす
+        if("due_date" not in task): continue
+        due_date = __str_to_date(task["due_date"])
+        if threshold_date >= due_date and today <= due_date:
+            ret.append(task)
+    return ret
+
+# 指定プロジェクト名のタスクのうち期限切れのタスクを返す
+def expired_tasks_by_project_name(sess, name=""):
+    tasks = tasks_by_project_name(sess, name=name)
+    today = datetime.date.today()
+
+    ret = []
+    for task in tasks:
+        if("due_date" not in task): continue
+        due_date = __str_to_date(task["due_date"])
+        if today >= due_date :
+            ret.append(task)
+    return ret
 
 '''
 ###############################################
@@ -116,3 +149,7 @@ def get_project_id_by_name(sess, name=''):
         if i['title'] == name:
             return i['id']
 
+
+def __str_to_date(date_string):
+    to_datetime = datetime.datetime.strptime(date_string, "%Y-%m-%d")
+    return datetime.date(to_datetime.year, to_datetime.month, to_datetime.day)
